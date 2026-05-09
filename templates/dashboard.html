@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDS Dashboard - Behavioral Fingerprint</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .ml-status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .ml-status-badge.training {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border-color: rgba(245, 158, 11, 0.2);
+        }
+        .pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+
+    <nav class="nav-bar">
+        <div class="nav-brand">
+            🛡️ IDS Dashboard
+            <div class="ml-status-badge {% if ml_status != 'Active' %}training{% endif %}">
+                <span class="pulse"></span>
+                ML Model: {{ ml_status }}
+            </div>
+        </div>
+        <div class="nav-links">
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Logged in as <strong>{{ username }}</strong></span>
+            <a href="/logout" class="btn-logout">Logout</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        
+        <div class="stats-grid">
+            <div class="stat-card primary">
+                <span class="title">Total Users</span>
+                <span class="value">{{ total_users }}</span>
+            </div>
+            <div class="stat-card warning">
+                <span class="title">Detected Attacks</span>
+                <span class="value">{{ total_attacks }}</span>
+            </div>
+            <div class="stat-card danger">
+                <span class="title">High Risk / ML Anomalies</span>
+                <span class="value">{{ high_risk }}</span>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="panel">
+                <h2>📈 Threat Analytics</h2>
+                <div class="chart-container">
+                    <canvas id="threatChart"></canvas>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>📋 Security Logs</h2>
+                <div class="log-list">
+                    {% if logs %}
+                        {% for log in logs %}
+                            {% if 'FAILED' in log or 'ATTACKER' in log or 'BOT' in log or 'RETRY' in log or 'UNAUTHORIZED' in log or '🚨' in log %}
+                                <div class="log-item alert">{{ log.strip() }}</div>
+                            {% else %}
+                                <div class="log-item">{{ log.strip() }}</div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="log-item" style="text-align: center; color: var(--text-muted); border-left: none;">No recent logs found.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup Chart.js
+            const ctx = document.getElementById('threatChart').getContext('2d');
+            
+            const data = {
+                labels: ['Users', 'Attacks', 'High Risk/Anomalies'],
+                datasets: [{
+                    label: 'Security Metrics',
+                    data: [{{ total_users }}, {{ total_attacks }}, {{ high_risk }}],
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.6)', // Primary blue
+                        'rgba(245, 158, 11, 0.6)', // Warning orange
+                        'rgba(239, 68, 68, 0.6)'   // Danger red
+                    ],
+                    borderColor: [
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(245, 158, 11, 1)',
+                        'rgba(239, 68, 68, 1)'
+                    ],
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            };
+
+            const config = {
+                type: 'bar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                            titleColor: '#f8fafc',
+                            bodyColor: '#e2e8f0',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            padding: 10,
+                            displayColors: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                stepSize: 1
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: {
+                                    weight: '500'
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            new Chart(ctx, config);
+        });
+    </script>
+</body>
+</html>

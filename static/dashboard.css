@@ -1,0 +1,122 @@
+body{
+
+    margin:0;
+
+    background:#0f172a;
+
+    color:white;
+
+    font-family:Arial;
+}
+
+
+/* NAVBAR */
+
+.navbar{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    padding:20px 50px;
+
+    background:#111827;
+}
+
+
+.status{
+
+    padding:10px 20px;
+
+    border:1px solid lime;
+}
+
+
+
+/* CARDS */
+
+.cards{
+
+    display:flex;
+
+    justify-content:space-around;
+
+    margin-top:30px;
+}
+
+
+.card{
+
+    width:250px;
+
+    background:#1e293b;
+
+    padding:30px;
+
+    border-radius:15px;
+
+    text-align:center;
+}
+
+
+.card h2{
+
+    font-size:40px;
+}
+
+
+
+/* GRID */
+
+.main-grid{
+
+    display:grid;
+
+    grid-template-columns:2fr 1fr;
+
+    gap:30px;
+
+    margin:40px;
+}
+
+
+
+/* CHART */
+
+.chart-box{
+
+    background:#1e293b;
+
+    padding:30px;
+
+    border-radius:15px;
+}
+
+
+
+/* LOGS */
+
+.logs-box{
+
+    background:#1e293b;
+
+    padding:30px;
+
+    border-radius:15px;
+}
+
+
+.logs{
+
+    max-height:400px;
+
+    overflow:auto;
+}
+
+
+.logs p{
+
+    border-bottom:1px solid gray;
+
+    padding:10px 0;
+}

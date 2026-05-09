@@ -1,122 +1,173 @@
-body{
-
-    margin:0;
-
-    background:#0f172a;
-
-    color:white;
-
-    font-family:Arial;
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #2b3a4a;
+    background-image: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
 }
 
-
-/* NAVBAR */
-
-.navbar{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    padding:20px 50px;
-
-    background:#111827;
+.dashboard-container {
+    padding: 30px 50px;
 }
 
-
-.status{
-
-    padding:10px 20px;
-
-    border:1px solid lime;
+/* Header section */
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
 }
 
-
-
-/* CARDS */
-
-.cards{
-
-    display:flex;
-
-    justify-content:space-around;
-
-    margin-top:30px;
+.header-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #f39c12; /* orange/coral color from image */
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-
-.card{
-
-    width:250px;
-
-    background:#1e293b;
-
-    padding:30px;
-
-    border-radius:15px;
-
-    text-align:center;
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
-
-.card h2{
-
-    font-size:40px;
+.system-active {
+    padding: 8px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: 500;
+    background-color: transparent;
 }
 
-
-
-/* GRID */
-
-.main-grid{
-
-    display:grid;
-
-    grid-template-columns:2fr 1fr;
-
-    gap:30px;
-
-    margin:40px;
+.logout-btn {
+    padding: 8px 16px;
+    background-color: #e74c3c;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.2s;
 }
 
-
-
-/* CHART */
-
-.chart-box{
-
-    background:#1e293b;
-
-    padding:30px;
-
-    border-radius:15px;
+.logout-btn:hover {
+    background-color: #c0392b;
 }
 
-
-
-/* LOGS */
-
-.logs-box{
-
-    background:#1e293b;
-
-    padding:30px;
-
-    border-radius:15px;
+/* Cards Section */
+.cards-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+    margin-bottom: 40px;
 }
 
-
-.logs{
-
-    max-height:400px;
-
-    overflow:auto;
+.stat-card {
+    flex: 1;
+    background-color: #1e293b;
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
 
+.stat-card h2 {
+    font-size: 42px;
+    margin: 0 0 15px 0;
+    font-weight: 600;
+}
 
-.logs p{
+.stat-card p {
+    margin: 0;
+    font-size: 14px;
+    color: #cbd5e1;
+}
 
-    border-bottom:1px solid gray;
+/* Main Grid Section */
+.main-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
 
-    padding:10px 0;
+.panel {
+    background-color: #1e293b;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.panel h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+.log-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.log-item {
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-family: monospace;
+    font-size: 13px;
+    color: #e2e8f0;
+}
+
+.log-item:last-child {
+    border-bottom: none;
+}
+
+/* Custom scrollbar for logs */
+.log-list::-webkit-scrollbar {
+    width: 8px;
+}
+.log-list::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05); 
+}
+.log-list::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2); 
+    border-radius: 4px;
+}
+
+/* Table styles */
+.table-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+th {
+    font-size: 14px;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+td {
+    font-size: 14px;
 }

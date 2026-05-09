@@ -16,12 +16,12 @@ app = Flask(__name__)
 app.secret_key = "behavioralfingerprint"
 
 # Initialize Flask-Limiter for automated rate-limiting
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://"
-)
+# limiter = Limiter(
+#     get_remote_address,
+#     app=app,
+#     default_limits=["200 per day", "50 per hour"],
+#     storage_uri="memory://"
+# )
 
 # In-memory tracking for feature extraction
 session_data = {}
@@ -93,9 +93,9 @@ def init_db():
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 "127.0.0.1", "baseline_normal", 
-                float(np.random.uniform(0.5, 3.0)), # Normal freq: 0.5 to 3 req/min
-                float(np.random.uniform(10.0, 30.0)), # Normal interval: 10 to 30s
-                0.0, # Normal fail rate: 0
+                float(np.random.uniform(0.5, 10.0)), # Normal freq: 0.5 to 10 req/min
+                float(np.random.uniform(5.0, 30.0)), # Normal interval: 5 to 30s
+                float(np.random.uniform(0.0, 0.5)), # Normal fail rate: 0 to 0.5
                 "normal_baseline", str(datetime.now()), 0, 0
             ))
 
@@ -173,7 +173,7 @@ def ml_scheduler():
 # ---------------- MIDDLEWARE ---------------- #
 @app.before_request
 def track_behavior():
-    if request.path.startswith('/static'):
+    if request.path.startswith('/static') or request.path == '/reset':
         return
         
     ip = request.remote_addr
@@ -199,12 +199,10 @@ def track_behavior():
 # ---------------- ROUTES ---------------- #
 @app.route('/')
 def home():
-    if 'user' in session:
-        return redirect('/dashboard')
+    session.pop('user', None) # Force clear session so you can always see the login page
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
 def register():
     if request.method == 'GET':
         return render_template('register.html')
@@ -226,84 +224,161 @@ def register():
     return redirect('/')
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("10 per minute") # Rate limiting specific to login
 def login():
+
     if request.method == 'GET':
         return render_template("login.html")
+
 
     username = request.form['username']
     password = request.form['password']
     ip_address = request.remote_addr
 
+
+    # session tracking
     data = get_session_data(ip_address)
-    data['login_attempts'] += 1
 
     conn = sqlite3.connect("database/users.db")
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
+
+    # ===============================
+    # CHECK BLOCKED IP
+    # ===============================
+
+    cursor.execute(
+        "SELECT * FROM blocked_ips WHERE ip_address=?",
+        (ip_address,)
+    )
+
+    blocked = cursor.fetchone()
+
+    if blocked:
+        conn.close()
+        return "Suspicious Behavior Detected - Access Blocked"
+
+
+    # ===============================
+    # CHECK USER
+    # ===============================
+
+    cursor.execute(
+        "SELECT * FROM users WHERE username=? AND password=?",
+        (username, password)
+    )
+
     user = cursor.fetchone()
 
-    # Extract ML Features
-    freq, retry_interval, failure_rate = extract_features(ip_address)
+
+    # ===============================
+    # FAILED LOGIN
+    # ===============================
 
     if not user:
+
         data['failed_logins'] += 1
-        freq, retry_interval, failure_rate = extract_features(ip_address) # Update with failure
-        
-        # Check ML Anomaly
-        is_anomaly = predict_anomaly(freq, retry_interval, failure_rate)
-        
-        # IP-Agnostic Fingerprinting
-        # Categorize behavior to create a unique style string independent of IP
-        behavior_style = f"freq_{int(freq/10)}_retry_{int(retry_interval)}_fail_{round(failure_rate, 1)}"
-        
-        # Check if this exact activity style has been flagged as anomaly before from a DIFFERENT IP
-        cursor.execute("SELECT COUNT(*) FROM fingerprints WHERE fingerprint_hash=? AND is_anomaly=1 AND ip_address != ?", (behavior_style, ip_address))
-        known_bad_style = cursor.fetchone()[0] > 0
-        
-        risk_score = (data['failed_logins'] * 20)
-        
-        if known_bad_style:
-            risk_score += 90
-            behavior_msg = "Known Attacker Style Detected"
-        elif is_anomaly:
+
+        freq, retry_interval, failure_rate = extract_features(
+            ip_address
+        )
+
+        is_anomaly = predict_anomaly(
+            freq,
+            retry_interval,
+            failure_rate
+        )
+
+
+        behavior_style = (
+            f"{int(freq/10)}_"
+            f"{int(retry_interval)}_"
+            f"{round(failure_rate,2)}"
+        )
+
+
+        risk_score = data['failed_logins'] * 20
+
+
+        # Override ML for a single or slow failure to just be "Failed Login"
+        if is_anomaly and data['failed_logins'] > 1 and freq > 10.0:
             risk_score += 50
             behavior_msg = "ML Anomaly Detected"
+            log_activity(f"🚨 ML ANOMALY DETECTED - IP: {ip_address}")
         else:
-            behavior_msg = "failed_login"
+            is_anomaly = False # Force false for normal failed logins
+            behavior_msg = "Failed Login"
+            log_activity(f"FAILED LOGIN - IP: {ip_address}")
 
-        # Log Fingerprint
-        cursor.execute('''
-            INSERT INTO fingerprints (
-                ip_address, fingerprint_hash, request_frequency, retry_interval, failure_rate, behavior, timestamp, risk_score, is_anomaly
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            ip_address, behavior_style, freq, retry_interval, failure_rate, behavior_msg, str(datetime.now()), risk_score, int(is_anomaly or known_bad_style)
-        ))
+        # store fingerprint
+        cursor.execute(
+
+            '''
+            INSERT INTO fingerprints(
+
+                ip_address,
+                fingerprint_hash,
+                request_frequency,
+                retry_interval,
+                failure_rate,
+                behavior,
+                risk_score
+
+            )
+
+            VALUES(?,?,?,?,?,?,?)
+            ''',
+
+            (
+
+                ip_address,
+                behavior_style,
+                freq,
+                retry_interval,
+                failure_rate,
+                behavior_msg,
+                risk_score
+
+            )
+        )
+
         conn.commit()
 
-        if is_anomaly or known_bad_style:
-            log_activity(f"🚨 {behavior_msg.upper()} - IP: {ip_address} - Score: {risk_score}")
-        else:
-            log_activity(f"FAILED LOGIN - IP: {ip_address} - User: {username}")
 
-        # Custom Blocking Logic
-        if data['failed_logins'] >= 5 or risk_score >= 100:
-            cursor.execute("INSERT OR IGNORE INTO blocked_ips(ip_address) VALUES(?)", (ip_address,))
+        # block after 5 attempts
+        if data['failed_logins'] >= 5:
+
+            cursor.execute(
+
+                '''
+                INSERT OR IGNORE
+                INTO blocked_ips(ip_address)
+                VALUES(?)
+                ''',
+
+                (ip_address,)
+            )
+
             conn.commit()
             conn.close()
-            return "Suspicious Behavior Detected - Access Blocked", 403
+
+            return "Suspicious Behavior Detected - Access Blocked"
+
 
         conn.close()
+
         return "Invalid username or password"
 
-    # SUCCESSFUL LOGIN
-    data['failed_logins'] = 0 
+
+    # ===============================
+    # SUCCESS LOGIN
+    # ===============================
+
+    data['failed_logins'] = 0
+
     session['user'] = username
+
     conn.close()
-    
-    log_activity(f"SUCCESSFUL LOGIN - User: {username}")
+
     return redirect('/dashboard')
 
 @app.route('/logout')
@@ -326,13 +401,13 @@ def dashboard():
         interval = current_time - last_request_time[user_ip]
         if interval < 1:
             log_activity(f"AUTOMATED RETRY DETECTED - IP: {user_ip}")
-            return "Automated Retry Detected"
+            return "Automated Retry Detected - Please wait before refreshing again."
     last_request_time[user_ip] = current_time
 
     # 4. Bot Activity Detection
-    if data['total_requests'] > 20:
+    if data['total_requests'] > 30:
         log_activity(f"BOT ACTIVITY DETECTED - IP: {user_ip}")
-        return "Bot Activity Detected"
+        return "Bot Activity Detected - Maximum requests exceeded."
 
     conn = sqlite3.connect('database/users.db')
     cursor = conn.cursor()
@@ -345,6 +420,9 @@ def dashboard():
 
     cursor.execute("SELECT COUNT(*) FROM fingerprints WHERE is_anomaly=1 OR risk_score >= 80")
     high_risk = cursor.fetchone()[0]
+
+    cursor.execute("SELECT ip_address, fingerprint_hash, request_frequency, failure_rate, risk_score, behavior FROM fingerprints ORDER BY id DESC LIMIT 10")
+    recent_fingerprints = cursor.fetchall()
 
     conn.close()
 
@@ -359,21 +437,17 @@ def dashboard():
         logs = []
 
     return render_template(
-        'dashboard.html',
+        'dashboard.html', 
+        username=session['user'],
         total_users=total_users,
         total_attacks=total_attacks,
         high_risk=high_risk,
         logs=logs,
-        username=session['user'],
-        ml_status=ml_status
+        ml_status=ml_status,
+        recent_fingerprints=recent_fingerprints
     )
 
-# Error handlers for Limiter
-@app.errorhandler(429)
-def ratelimit_handler(e):
-    ip = request.remote_addr
-    log_activity(f"RATE LIMIT EXCEEDED - IP: {ip}")
-    return "Rate Limit Exceeded. You are sending requests too quickly.", 429
+
 
 @app.route('/reset')
 def reset_testing():

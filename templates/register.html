@@ -1,58 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Behavioral Fingerprint IDS - Register</title>
+
+    <title>Register</title>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
 </head>
+
 <body>
+
     <div class="container">
-        <div class="auth-container">
-            <div class="left-panel">
-                <div class="logo">🛡️</div>
-                <h1>Behavioral Fingerprint IDS</h1>
-                <p>Join the Secure Network with Adaptive Intrusion Detection.</p>
-                <div class="features">
-                    <div class="feature-card">
-                        <h3>⚡ Real-Time Monitoring</h3>
-                        <p>Track suspicious user behavior instantly.</p>
-                    </div>
-                    <div class="feature-card">
-                        <h3>🧠 Adaptive Learning</h3>
-                        <p>System continuously learns new attack patterns.</p>
-                    </div>
-                    <div class="feature-card">
-                        <h3>🔐 Zero Trust Security</h3>
-                        <p>Every request is verified before access.</p>
-                    </div>
-                </div>
+
+        <div class="form-box">
+
+            <h1>
+                🛡 Create Account
+            </h1>
+
+            <p>
+                Behavioral IDS Registration
+            </p>
+
+            <form action="/register" method="POST">
+
+                <input type="text" name="username" placeholder="Choose Username" required>
+
+                <input type="password" name="password" placeholder="Choose Password" required>
+
+                <button type="submit">
+                    Register
+                </button>
+
+            </form>
+
+            <div class="bottom-text">
+
+                Already have an account?
+
+                <a href="/">
+                    Login
+                </a>
+
             </div>
 
-            <div class="right-panel">
-                <div class="login-card">
-                    <h2>Create Account</h2>
-                    <p class="subtitle">Register to access the secure dashboard</p>
-                    
-                    <form action="/register" method="POST">
-                        <div class="input-group">
-                            <label>Username</label>
-                            <input type="text" name="username" placeholder="Choose a Username" required>
-                        </div>
-                        <div class="input-group">
-                            <label>Password</label>
-                            <input type="password" name="password" placeholder="Choose a Password" required>
-                        </div>
-                        <button type="submit">Register Securely</button>
-                    </form>
-
-                    <div class="footer-text">
-                        Already have an account? 
-                        <a href="/login">Login</a>
-                    </div>
-                </div>
-            </div>
         </div>
+
     </div>
+
 </body>
+
 </html>

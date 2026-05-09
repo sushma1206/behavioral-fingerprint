@@ -3,115 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IDS Dashboard - Behavioral Fingerprint</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Behavioral Fingerprint Dashboard</title>
+    <!-- Use the newly created dashboard.css instead of style.css to match the image precisely -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .ml-status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .ml-status-badge.training {
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--warning);
-            border-color: rgba(245, 158, 11, 0.2);
-        }
-        .pulse {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: currentColor;
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
-        }
-    </style>
 </head>
-<body class="dashboard-body">
-
-    <nav class="nav-bar">
-        <div class="nav-brand">
-            🛡️ IDS Dashboard
-            <div class="ml-status-badge {% if ml_status != 'Active' %}training{% endif %}">
-                <span class="pulse"></span>
-                ML Model: {{ ml_status }}
-            </div>
-        </div>
-        <div class="nav-links">
-            <span style="color: var(--text-muted); font-size: 0.9rem;">Logged in as <strong>{{ username }}</strong></span>
-            <a href="/logout" class="btn-logout">Logout</a>
-        </div>
-    </nav>
+<body>
 
     <div class="dashboard-container">
         
-        <div class="stats-grid">
-            <div class="stat-card primary">
-                <span class="title">Total Users</span>
-                <span class="value">{{ total_users }}</span>
+        <!-- Top Header as requested -->
+        <div class="header-top">
+            <div class="header-title">
+                🛡 Behavioral Fingerprint Dashboard
             </div>
-            <div class="stat-card warning">
-                <span class="title">Detected Attacks</span>
-                <span class="value">{{ total_attacks }}</span>
-            </div>
-            <div class="stat-card danger">
-                <span class="title">High Risk / ML Anomalies</span>
-                <span class="value">{{ high_risk }}</span>
+            <div class="header-right">
+                <div class="system-active">
+                    SYSTEM ACTIVE
+                </div>
+                <!-- Red Logout Button in extreme right corner -->
+                <a href="/logout" class="logout-btn">Logout</a>
             </div>
         </div>
 
-        <div class="dashboard-grid">
+        <!-- 3 Large Stat Cards -->
+        <div class="cards-container">
+            <div class="stat-card">
+                <h2>{{ total_users }}</h2>
+                <p>Total Users</p>
+            </div>
+            <div class="stat-card">
+                <h2>{{ total_attacks }}</h2>
+                <p>Detected Attacks</p>
+            </div>
+            <div class="stat-card">
+                <h2>{{ high_risk }}</h2>
+                <p>High Risk Alerts</p>
+            </div>
+        </div>
+
+        <!-- Main Grid for Chart and Logs -->
+        <div class="main-grid">
+            <!-- Left: Threat Analytics -->
             <div class="panel">
-                <h2>📈 Threat Analytics</h2>
+                <h3>Threat Analytics</h3>
                 <div class="chart-container">
                     <canvas id="threatChart"></canvas>
                 </div>
             </div>
 
+            <!-- Right: Recent Security Logs -->
             <div class="panel">
-                <h2>📋 Security Logs</h2>
+                <h3>Recent Security Logs</h3>
                 <div class="log-list">
                     {% if logs %}
                         {% for log in logs %}
-                            {% if 'FAILED' in log or 'ATTACKER' in log or 'BOT' in log or 'RETRY' in log or 'UNAUTHORIZED' in log or '🚨' in log %}
-                                <div class="log-item alert">{{ log.strip() }}</div>
-                            {% else %}
-                                <div class="log-item">{{ log.strip() }}</div>
-                            {% endif %}
+                            <div class="log-item" style="color: {% if 'FAILED' in log or 'BOT' in log or 'RETRY' in log or 'UNAUTHORIZED' in log or '🚨' in log %}#ff6b6b{% else %}#e2e8f0{% endif %};">
+                                {{ log.strip() }}
+                            </div>
                         {% endfor %}
                     {% else %}
-                        <div class="log-item" style="text-align: center; color: var(--text-muted); border-left: none;">No recent logs found.</div>
+                        <div class="log-item" style="color: #94a3b8; text-align: center;">No recent logs found.</div>
                     {% endif %}
                 </div>
             </div>
         </div>
 
+        <!-- Bottom Panel: Active Behavioral Fingerprints Table -->
+        <div class="panel">
+            <h3>Active Behavioral Fingerprints</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>Behavioral Hash</th>
+                            <th>Req Freq</th>
+                            <th>Failure Rate</th>
+                            <th>Risk Score</th>
+                            <th>Detected Behavior</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if recent_fingerprints %}
+                            {% for fp in recent_fingerprints %}
+                            <tr>
+                                <td style="font-family: monospace;">{{ fp[0] }}</td>
+                                <td style="font-family: monospace; color: #3b82f6;">{{ fp[1] }}</td>
+                                <td>{{ "%.2f"|format(fp[2]) }} req/s</td>
+                                <td>{{ "%.2f"|format(fp[3]) }}</td>
+                                <td>
+                                    <span style="padding: 4px 8px; border-radius: 4px; background: {% if fp[4] >= 80 %}rgba(239, 68, 68, 0.2); color: #ff6b6b;{% elif fp[4] >= 50 %}rgba(245, 158, 11, 0.2); color: #f39c12;{% else %}rgba(16, 185, 129, 0.2); color: #2ecc71;{% endif %}">
+                                        {{ fp[4] }}
+                                    </span>
+                                </td>
+                                <td style="color: {% if 'Anomaly' in fp[5] or 'Blocked' in fp[5] %}#ff6b6b{% else %}#e2e8f0{% endif %};">{{ fp[5] }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: #94a3b8;">No fingerprints recorded yet.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 
+    <!-- Chart.js Setup for Threat Analytics -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Setup Chart.js
+        document.addEventListener('DOMContentLoaded', function () {
             const ctx = document.getElementById('threatChart').getContext('2d');
-            
+
             const data = {
                 labels: ['Users', 'Attacks', 'High Risk/Anomalies'],
                 datasets: [{
                     label: 'Security Metrics',
                     data: [{{ total_users }}, {{ total_attacks }}, {{ high_risk }}],
                     backgroundColor: [
-                        'rgba(59, 130, 246, 0.6)', // Primary blue
-                        'rgba(245, 158, 11, 0.6)', // Warning orange
-                        'rgba(239, 68, 68, 0.6)'   // Danger red
+                        'rgba(59, 130, 246, 0.6)', 
+                        'rgba(245, 158, 11, 0.6)', 
+                        'rgba(239, 68, 68, 0.6)'   
                     ],
                     borderColor: [
                         'rgba(59, 130, 246, 1)',
